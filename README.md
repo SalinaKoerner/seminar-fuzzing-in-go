@@ -1,20 +1,28 @@
 # Seminar: Fuzzing in Go
-
+by Salina Körner 
 [Seminar Overview GitHub](https://github.com/sulzmann/Seminar/blob/main/winter24-25.md)
+
+other students work: 
 
 <!-- TOC -->
 * [Seminar: Fuzzing in Go](#seminar-fuzzing-in-go)
   * [T3: Go's Built-In Fuzzer](#t3-gos-built-in-fuzzer)
-* [Autonome Systeme Examples](#autonome-systeme-examples)
+* [Topic 1: Autonome Systeme Examples](#topic-1-autonome-systeme-examples)
+  * [Summary:](#summary-)
   * [Deadlock Example](#deadlock-example)
   * [Livelock Example](#livelock-example)
   * [Starvation Example](#starvation-example)
   * [Data Race Example](#data-race-example)
   * [Philo Example](#philo-example)
-* [Conclusions](#conclusions)
-    * [Questions:](#questions)
-    * [Advatages of Go's Built-In Fuzzer](#advatages-of-gos-built-in-fuzzer)
-    * [Limitations of Go's Built-In Fuzzer](#limitations-of-gos-built-in-fuzzer)
+* [Topic 2: Limitations of the Go Fuzzer](#topic-2-limitations-of-the-go-fuzzer)
+  * [What the output of the Go Built-In Fuzzer means](#what-the-output-of-the-go-built-in-fuzzer-means)
+  * [Limitiations](#limitiations)
+    * [Supported Fuzzing Argument Types](#supported-fuzzing-argument-types)
+* [Meeting Summaries](#meeting-summaries)
+  * [Meeting 07.11.2024](#meeting-07112024)
+  * [Meeting 21.11.2024](#meeting-21112024)
+  * [Meeting 05.12.2024](#meeting-05122024)
+  * [Meeting 12.12.2024](#meeting-12122024)
 * [Sources / Literature](#sources--literature-)
 <!-- TOC -->
 
@@ -30,7 +38,11 @@ Topic: How effective is Go fuzzing to detect concurrency bugs?
 
 ---
 
-# Autonome Systeme Examples
+# Topic 1: Autonome Systeme Examples
+
+Summary: 
+- 
+
 - Bugs scenarios are:
   - deadlock
   - livelock
@@ -154,7 +166,7 @@ func FuzzLivelock(f *testing.F) {
 
 Sample run
 
-Does not detect a bug
+Does not detect a bug -> Starvation is also hard to prove as you have to prove that the programm keeps running without ever actually making any progress.
 
 ## Starvation Example
 
@@ -230,6 +242,7 @@ FAIL
 exit status 1
 FAIL    main/main/starvation    10.352s
 ```
+The fuzzing-process stopped.
 
 ## Data Race Example
 
@@ -300,6 +313,9 @@ FAIL
 exit status 1
 FAIL    main/main/datarace      16.479s
 ```
+
+The fuzzer detected a race with the -race flag from the Go race detector.
+The race however was also detected with only the -race tag and without the fuzzer
 
 ## Philo Example
 
@@ -400,11 +416,63 @@ exit status 1
 FAIL    main/main/philo 47.207s
 ```
 
-# Conclusions
+The fuzzer failed.
 
-### Questions:
-- What is it good at detecting, where does it fail to detect bugs?
-- What are the limitations of the built-in fuzzer?
+# Topic 2: Limitations of the Go Fuzzer
+
+Summary/Conclusion: 
+- not a lot of literature about Gos Built-In Fuzzer
+- seen other people complain about obvious deadlock not being detected
+
+
+## What the output of the Go Built-In Fuzzer means
+- **Baseline coverage**: running the function with an initial set of inputs to ensure code coverage. 
+  3/3 completed means 3 of 3 initial inputs were successfully covered.
+- **elapsed**: seconds since the fuzzing process started
+- **8 workers**: means there are 8 concurrent test runners 
+- **exces**: number of function executions
+- **new interesting**: number of newly discovered inputs that lead to previously undiscovered code paths
+
+- after over 2.618.761 executions the process failed, which means there is a problem in the function
+
+## Limitiations
+
+- Gos built-in fuzzer only exists since Go 1.18 which was released in March 2022. So it's fairly new.
+  That also means that there isn't a lot of literature about it
+- The examples by other people I found were fairly simple and didn't include concurrency
+- Only 3 issues regarding fuzzing were closed on the official [Go-GitHub](https://github.com/golang/go/issues?q=is%3Aissue+is%3Aopen+label%3Afuzz&ref=0x434b.dev) since 2023
+  - progress seems to be slow
+- Only few types are supported as fuzzing arguments (see below)
+
+
+### Supported Fuzzing Argument Types
+- string, []byte
+- int, int8, int16, int32/rune, int64
+- uint, uint8/byte, uint16, uint32, uint64
+- float32, float64
+- bool
+- (fuzz target)
+
+
+# Meeting Summaries
+
+## Meeting 07.11.2024
+Action Points
+- How to use go fuzz for concurrent programs?
+- Limitations
+- Further examples. Check out literature (blogs, articles,...)
+
+## Meeting 21.11.2024
+
+
+## Meeting 05.12.2024
+
+
+## Meeting 12.12.2024
 
 # Sources / Literature 
 - [go.dev - Tutorial: Getting started with fuzzing ](https://go.dev/doc/tutorial/fuzz)
+- [Best practices for go fuzzing in Go 1.18](https://faun.pub/best-practices-for-go-fuzzing-in-go-1-18-84eab46b70d8)
+- [The state of Go Fuzzing: Did we already reach the peak](https://0x434b.dev/the-state-of-go-fuzzing-did-we-already-reach-the-peak/#native-go-fuzzing-is-it-advancing)
+- [Finding bugs with go fuzzing](https://bitfieldconsulting.com/posts/bugs-fuzzing)
+- [Source file src/internal/fuzz/fuzz.go](https://go.dev/src/internal/fuzz/fuzz.go)
