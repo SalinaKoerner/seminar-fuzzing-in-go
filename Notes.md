@@ -61,7 +61,7 @@ FAIL    main/main/datarace      16.479s
 ```
 
 - **-fuzz=FuzzDataRace:** the name of the fuzz test (in this case FuzzDataRace)
-- **baseline coverage:**
+- **baseline coverage:** running the function with an initial set of inputs to ensure code coverage.
 - **fuzzing with 8 workers:** means there are 8 concurrent test runners, this corresponds to the number of kernels of
   the pc
 - **elapsed:** seconds since the fuzzing process started
