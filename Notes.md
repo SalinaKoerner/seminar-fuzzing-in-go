@@ -1,4 +1,4 @@
-<!-- TOC -->
+F<!-- TOC -->
 * [Fuzz Testing](#fuzz-testing)
 * [Requirements](#requirements)
 * [Fuzz test](#fuzz-test)
@@ -7,7 +7,7 @@
 * [General use cases of Go Fuzzer](#general-use-cases-of-go-fuzzer)
 * [Data Race Detection with the Go Fuzzer](#data-race-detection-with-the-go-fuzzer)
   * [Data Race Example](#data-race-example)
-* [Summary of typical uses of go fuzz](#summary-of-typical-uses-of-go-fuzz)
+* [Summary](#summary)
 * [Sources / Literature](#sources--literature)
 <!-- TOC -->
 
@@ -208,7 +208,7 @@ FAIL    main/main/datarace      2.242s
 
 The later runs reports a race much quicker than the first one, because it has more code coverage.
 
-# Summary of typical uses of go fuzz
+# Summary
 
 To summarize one can say that the built-in Go fuzzer has proven to be a useful tool for finding some bugs.
 
