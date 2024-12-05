@@ -2,7 +2,6 @@
 by Salina Körner 
 [Seminar Overview GitHub](https://github.com/sulzmann/Seminar/blob/main/winter24-25.md)
 
-other students work: 
 
 <!-- TOC -->
 * [Seminar: Fuzzing in Go](#seminar-fuzzing-in-go)
@@ -463,6 +462,13 @@ Action Points
 - Further examples. Check out literature (blogs, articles,...)
 
 ## Meeting 21.11.2024
+Action Points
+- code paths? code coverage?
+- go-fuzz "general" use cases
+- summary of typical uses of go-fuzz
+- go-fuzz and go-race, see "data race" example, via go-fuzz we seem to be 
+able to explore some alternative schedules under which we can expose the data race.
+
 
 
 ## Meeting 05.12.2024
