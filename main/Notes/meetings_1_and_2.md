@@ -27,7 +27,7 @@ Here you can see the structure of a fuzz test in Go.
 The fuzz test needs to be in a file called {FileToTest}_test.go. The name of the fuzz test needs to start with "Fuzz"
 followed by the name of the function, e.g. Fuzz{FunctionName}).
 
-![img.png](img.png)
+![img.png](fuzzTestStructure.png)
 
 - Fuzz test: The fuzz test is the entire test with all its required parts, including fuzz target, fuzzing arguments and
   seed additions.

@@ -1,29 +1,37 @@
 # Seminar: Fuzzing in Go
-by Salina Körner 
+
+by Salina Körner
+
+for the seminar by Professor Sulzmann:
 [Seminar Overview GitHub](https://github.com/sulzmann/Seminar/blob/main/winter24-25.md)
-
-
+----
 <!-- TOC -->
+
 * [Seminar: Fuzzing in Go](#seminar-fuzzing-in-go)
-  * [T3: Go's Built-In Fuzzer](#t3-gos-built-in-fuzzer)
-* [Topic 1: Autonome Systeme Examples](#topic-1-autonome-systeme-examples)
-  * [Summary:](#summary-)
-  * [Deadlock Example](#deadlock-example)
-  * [Livelock Example](#livelock-example)
-  * [Starvation Example](#starvation-example)
-  * [Data Race Example](#data-race-example)
-  * [Philo Example](#philo-example)
-* [Topic 2: Limitations of the Go Fuzzer](#topic-2-limitations-of-the-go-fuzzer)
-  * [What the output of the Go Built-In Fuzzer means](#what-the-output-of-the-go-built-in-fuzzer-means)
-  * [Limitiations](#limitiations)
-    * [Supported Fuzzing Argument Types](#supported-fuzzing-argument-types)
-* [Meeting Summaries](#meeting-summaries)
-  * [Meeting 07.11.2024](#meeting-07112024)
-  * [Meeting 21.11.2024](#meeting-21112024)
-  * [Meeting 05.12.2024](#meeting-05122024)
-  * [Meeting 12.12.2024](#meeting-12122024)
-* [Sources / Literature](#sources--literature-)
+    * [T3: Go's Built-In Fuzzer](#t3-gos-built-in-fuzzer)
+* [What is fuzz testing?](#what-is-fuzz-testing)
+* [Fuzzing in Go](#fuzzing-in-go)
+    * [Requirements](#requirements)
+    * [Structure of a fuzz test](#structure-of-a-fuzz-test)
+    * [Output of a fuzz test](#output-of-a-fuzz-test)
+        * [Meaning of the output](#meaning-of-the-output)
+    * [How the Go fuzzer works](#how-the-go-fuzzer-works)
+* [Autonome Systeme Examples](#autonome-systeme-examples)
+    * [Deadlock Example](#deadlock-example)
+    * [Livelock Example](#livelock-example)
+    * [Starvation Example](#starvation-example)
+    * [Data Race Example](#data-race-example)
+    * [Philo Example](#philo-example)
+* [Data Race Detection with the Go Fuzzer](#data-race-detection-with-the-go-fuzzer)
+    * [Data Race Example](#data-race-example-1)
+* [General use cases of the Go fuzzer](#general-use-cases-of-the-go-fuzzer)
+* [Pros and Cons / Advantages and Limitations](#pros-and-cons--advantages-and-limitations)
+* [Conclusion and lessons learned](#conclusion-and-lessons-learned)
+* [Sources / Literature](#sources--literature)
+
 <!-- TOC -->
+
+----
 
 ## T3: Go's Built-In Fuzzer
 
@@ -35,18 +43,110 @@ Topic: How effective is Go fuzzing to detect concurrency bugs?
 
 3. Apply Go fuzzing and report your experiences.
 
----
+----
 
-# Topic 1: Autonome Systeme Examples
+# What is fuzz testing?
 
-Summary: 
-- 
+[Fuzz testing](https://en.wikipedia.org/wiki/Fuzzing) (also called fuzzing) is a testing technique, in which random data is used as inputs to find bugs in a
+program. A fuzzer checks for inputs that cause an error in the program.
+
+# Fuzzing in Go
+
+## Requirements
+
+- Go 1.18 or later
+- ARM64 or AMD64 architecture
+
+## Structure of a fuzz test
+
+This is the structure of a fuzz test.
+
+The naming convention suggests placing it in a file with the name {FileToTest}_test.go.
+
+The name of the fuzz test needs to start with "Fuzz" followed by the name of the function, e.g. Fuzz{FunctionName}).
+
+![fuzzTestStructure.png](main/Notes/fuzzTestStructure.png)
+
+- **Fuzz test**: The fuzz test is the entire test with all its required parts, including fuzz target, fuzzing arguments
+  and
+  seed additions.
+- **Fuzz target**: The function that is being executed with the corpus entries and the generated inputs.
+- **Fuzzing arguments**: The fuzzing arguments are the data types that are being passed to the fuzzing function. These
+  are
+  also mutated to generate new inputs.
+- **Seed corpus addition**: That is the arguments provided by the programmer to be added to the corpus.
+
+## Output of a fuzz test
+
+```
+λ go test -fuzz=FuzzDatarace -race
+fuzz: elapsed: 0s, gathering baseline coverage: 0/3 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 3/3 completed, now fuzzing with 8 workers
+fuzz: elapsed: 3s, execs: 971 (324/sec), new interesting: 4 (total: 7)
+fuzz: elapsed: 6s, execs: 1870 (300/sec), new interesting: 4 (total: 7)
+fuzz: elapsed: 9s, execs: 2674 (268/sec), new interesting: 5 (total: 8)
+fuzz: elapsed: 12s, execs: 3643 (323/sec), new interesting: 5 (total: 8)
+fuzz: elapsed: 15s, execs: 4355 (237/sec), new interesting: 5 (total: 8)
+fuzz: elapsed: 16s, execs: 4400 (38/sec), new interesting: 5 (total: 8)
+--- FAIL: FuzzDatarace (16.19s)
+    --- FAIL: FuzzDatarace (0.00s)
+        testing.go:1399: race detected during execution of test
+
+    Failing input written to testdata\fuzz\FuzzDatarace\b5dd7ee3ea717225
+    To re-run:
+    go test -run=FuzzDatarace/b5dd7ee3ea717225
+FAIL
+exit status 1
+FAIL    main/main/datarace      16.479s
+```
+
+### Meaning of the output
+
+- **-fuzz=FuzzDataRace:** the name of the fuzz test (in this case FuzzDataRace)
+- **baseline coverage:** running the function with an initial set of inputs to ensure code coverage.
+- **fuzzing with 8 workers:** means there are 8 concurrent test runners, this corresponds to the number of kernels of
+  the pc
+- **elapsed:** seconds since the fuzzing process started
+- **execs:** number inputs tested, number of functions executed
+- **new interesting:** number of newly discovered inputs that lead to previously undiscovered code paths.
+  An input is considered interesting if it expands the code coverage with more than what the currently generated corpus
+  already reached. In the brackets you can see the total size of the generated corpus.
+
+- after over 2.618.761 executions the process failed, which means there is a problem in the function
+
+## How the Go fuzzer works
+
+When running a fuzz test Go starts with the seed corpus to get an initial generated corpus.
+With a mutator it creates new inputs by generating new inputs, randomly modifying inputs or combining them.
+
+The Go built-in fuzzer then takes the newly generated inputs and keeps running the test.
+
+The Go fuzzer is coverage guided. That means it learns from the code coverage that is expanded by new inputs. It tries
+to explore as many new code paths as possible.
+A "new interesting" is a path that has previously been undiscovered.
+The "new interesting" amount will increase the most in the beginning, but as the fuzzing process continues to work,
+there
+will be less and less new interestings, as it won't find as many new code paths anymore.
+It keeps track of the "new interesting" and tries to mutate those,so inputs hopefully lead to a previously undiscovered
+code path.
+
+The fuzzing process stops when the fuzzer found a bug or the user manually stops it.
+It can fail because of panics, runtime errors, asserting t.Error or when user written validation logic fails.
+
+If the fuzzer finds a failing input it minimizes the input to the smallest input possible that still reproduces the
+failing behaviour. It is then added to the corpus and can be found in a directory usually called "
+testdata/fuzz/{FuzzTestName}".
+Since it is saved it can be used for future test runs.
+
+# Autonome Systeme Examples
+
+Summary:
 
 - Bugs scenarios are:
-  - deadlock
-  - livelock
-  - starvation
-  - data race
+    - deadlock
+    - livelock
+    - starvation
+    - data race
 
 ## Deadlock Example
 
@@ -78,6 +178,7 @@ rcv(ch)      // R2
 ```
 
 Fuzz test
+
 ```
 package deadlock
 
@@ -94,7 +195,9 @@ func FuzzDeadlock(f *testing.F) {
 	})
 }
 ```
+
 sample run
+
 ```
 λ go test -fuzz=FuzzDeadlock
 fuzz: elapsed: 0s, gathering baseline coverage: 0/1 completed
@@ -165,7 +268,8 @@ func FuzzLivelock(f *testing.F) {
 
 Sample run
 
-Does not detect a bug -> Starvation is also hard to prove as you have to prove that the programm keeps running without ever actually making any progress.
+Does not detect a bug -> Starvation is also hard to prove as you have to prove that the programm keeps running without
+ever actually making any progress.
 
 ## Starvation Example
 
@@ -204,6 +308,7 @@ rcv(ch)      // R2
 ```
 
 Fuzz test
+
 ```
 package starvation
 
@@ -227,6 +332,7 @@ func FuzzStarvation(f *testing.F) {
 ```
 
 Sample run
+
 ```
 λ go test -fuzz=FuzzStarvation
 fuzz: elapsed: 0s, gathering baseline coverage: 0/5 completed
@@ -241,6 +347,7 @@ FAIL
 exit status 1
 FAIL    main/main/starvation    10.352s
 ```
+
 The fuzzing-process stopped.
 
 ## Data Race Example
@@ -274,6 +381,7 @@ y := make(chan int, 1)
 ```
 
 Fuzz test
+
 ```
 package datarace
 
@@ -291,6 +399,7 @@ f.Add(50)
 ```
 
 Sample run
+
 ```
 λ go test -fuzz=FuzzDatarace -race
 fuzz: elapsed: 0s, gathering baseline coverage: 0/3 completed
@@ -323,7 +432,8 @@ The example: The Dining Philosophers Problem
 N philosophers sit at a table with a total of N forks. Each philosopher requires 2 forks to eat.
 
 Possible bugs:
-- deadlock 
+
+- deadlock
 - starvation
 
 ```
@@ -358,6 +468,7 @@ func main() {
   philo(3, forks)
 }
 ```
+
 The fuzz test:
 
 ```
@@ -417,68 +528,164 @@ FAIL    main/main/philo 47.207s
 
 The fuzzer failed.
 
-# Topic 2: Limitations of the Go Fuzzer
+# Data Race Detection with the Go Fuzzer
 
-Summary/Conclusion: 
-- not a lot of literature about Gos Built-In Fuzzer
-- seen other people complain about obvious deadlock not being detected
+Here is an example that includes a data race. The two go routines (main and T2) both try to increment (a write
+operation)
+the variable x.
 
+## Data Race Example
 
-## What the output of the Go Built-In Fuzzer means
-- **Baseline coverage**: running the function with an initial set of inputs to ensure code coverage. 
-  3/3 completed means 3 of 3 initial inputs were successfully covered.
-- **elapsed**: seconds since the fuzzing process started
-- **8 workers**: means there are 8 concurrent test runners 
-- **exces**: number of function executions
-- **new interesting**: number of newly discovered inputs that lead to previously undiscovered code paths
+```
+package main
 
-- after over 2.618.761 executions the process failed, which means there is a problem in the function
+import "fmt"
+import "time"
 
-## Limitiations
+func main() {
+var x int
+y := make(chan int, 1)
 
-- Gos built-in fuzzer only exists since Go 1.18 which was released in March 2022. So it's fairly new.
-  That also means that there isn't a lot of literature about it
-- The examples by other people I found were fairly simple and didn't include concurrency
-- Only 3 issues regarding fuzzing were closed on the official [Go-GitHub](https://github.com/golang/go/issues?q=is%3Aissue+is%3Aopen+label%3Afuzz&ref=0x434b.dev) since 2023
-  - progress seems to be slow
-- Only few types are supported as fuzzing arguments (see below)
+    // T2
+    go func() {
+        y <- 1
+        x++
+        <-y
 
+    }()
 
-### Supported Fuzzing Argument Types
-- string, []byte
-- int, int8, int16, int32/rune, int64
-- uint, uint8/byte, uint16, uint32, uint64
-- float32, float64
-- bool
-- (fuzz target)
+    x++
+    y <- 1
+    <-y
 
+    time.Sleep(1 * 1e9)
+    fmt.Printf("done \n")
 
-# Meeting Summaries
+}
+```
 
-## Meeting 07.11.2024
-Action Points
-- How to use go fuzz for concurrent programs?
-- Limitations
-- Further examples. Check out literature (blogs, articles,...)
+Fuzz test
 
-## Meeting 21.11.2024
-Action Points
-- code paths? code coverage?
-- go-fuzz "general" use cases
-- summary of typical uses of go-fuzz
-- go-fuzz and go-race, see "data race" example, via go-fuzz we seem to be 
-able to explore some alternative schedules under which we can expose the data race.
+```
+package datarace
 
+import "testing"
+import "time"
 
+func FuzzDatarace(f *testing.F) {
+f.Add(50)
 
-## Meeting 05.12.2024
+	f.Fuzz(func(t *testing.T, delayMs int) {
+		delay := time.Duration(delayMs) * time.Millisecond
+		datarace(delay)
+	})
+}
+```
 
+Sample runs
 
-## Meeting 12.12.2024
+one of the first runs:
 
-# Sources / Literature 
-- [go.dev - Tutorial: Getting started with fuzzing ](https://go.dev/doc/tutorial/fuzz)
+```
+λ go test -fuzz=FuzzDatarace -race
+fuzz: elapsed: 0s, gathering baseline coverage: 0/3 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 3/3 completed, now fuzzing with 8 workers
+fuzz: elapsed: 3s, execs: 971 (324/sec), new interesting: 4 (total: 7)
+fuzz: elapsed: 6s, execs: 1870 (300/sec), new interesting: 4 (total: 7)
+fuzz: elapsed: 9s, execs: 2674 (268/sec), new interesting: 5 (total: 8)
+fuzz: elapsed: 12s, execs: 3643 (323/sec), new interesting: 5 (total: 8)
+fuzz: elapsed: 15s, execs: 4355 (237/sec), new interesting: 5 (total: 8)
+fuzz: elapsed: 16s, execs: 4400 (38/sec), new interesting: 5 (total: 8)
+--- FAIL: FuzzDatarace (16.19s)
+    --- FAIL: FuzzDatarace (0.00s)
+        testing.go:1399: race detected during execution of test
+
+    Failing input written to testdata\fuzz\FuzzDatarace\b5dd7ee3ea717225
+    To re-run:
+    go test -run=FuzzDatarace/b5dd7ee3ea717225
+FAIL
+exit status 1
+FAIL    main/main/datarace      16.479s
+```
+
+Running the fuzz test with the -race flag turns out to detect a race within around 17 seconds.
+
+a later run:
+
+```
+λ go test -fuzz=FuzzDatarace -race
+fuzz: elapsed: 0s, gathering baseline coverage: 0/19 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 19/19 completed, now fuzzing with 8 workers
+fuzz: elapsed: 2s, execs: 982 (502/sec), new interesting: 0 (total: 19)
+--- FAIL: FuzzDatarace (1.97s)
+    --- FAIL: FuzzDatarace (0.00s)
+        testing.go:1399: race detected during execution of test
+
+    Failing input written to testdata\fuzz\FuzzDatarace\b45ecfe30afa5f31
+    To re-run:
+    go test -run=FuzzDatarace/b45ecfe30afa5f31
+FAIL
+exit status 1
+FAIL    main/main/datarace      2.242s
+```
+
+The later runs reports a race much quicker than the first one, because it has more code coverage.
+
+# General use cases of the Go fuzzer
+
+- Where deterministic unit tests don't discover bugs fuzz testing can help discover them by showing how the code behaves
+  when encountering random inputs.
+- Incorrect rune decoding
+- Finding bugs when parsing inputs
+- data races
+
+# Pros and Cons / Advantages and Limitations
+
+| Advantages                                                                              | Disadvantages                                                 |
+|-----------------------------------------------------------------------------------------|---------------------------------------------------------------|
+| can find bugs which unit tests can't find                                               | not a lot of documentation available, because it's fairly new |
+| seems to be good at finding data races which the data race detector doesn't always find | doesn't always find every bug                                 |
+| can be useful for parsing errors or incorrect rune decoding                             | only few data types are supported as fuzzing arguments        |
+| can find bugs the programmer didn't even think about or didn't write a test for         | can take a long time and a lot of resources                   |
+
+# Conclusion and lessons learned
+
+To summarize one can say that the built-in Go fuzzer has proven to be a useful tool for finding some bugs. It is
+however not fail-proof, as it cannot detect every single bug in a program.
+
+While generating inputs tests the program with a wider range of inputs, not all generated inputs are useful in helping
+to find a bug. Some inputs would not normally occur in the day to day use of a program. So it may help finding edge case
+bugs, whichs discovery doesn't help to improve the code.
+
+The Go built-in fuzzer seems to better at detecting data races, than the Go data race detector. Because sometimes
+running a test with the -race flag didn't find a data race, the Go built-in fuzzer however did.
+
+Although fuzz testing can discover unexpected bugs, it is still not a testing type that finds every possible bug in a
+project. So fuzzing can prove the existence of a bug, but not the absence of one.
+
+Go fuzzing in general also uses more resources than unit tests, because generating a lot of inputs and running a high
+number of test can be computationally expensive.
+
+Fuzz tests and especially fuzz targets need to be chosen carefully, as sometimes the fuzz test can fail due to
+irrelevant inputs.
+
+# Sources / Literature
+
+go.dev
+
+- [Go fuzz doc](https://go.dev/doc/security/fuzz/)
+- [Go fuzz tutorial](https://go.dev/doc/tutorial/fuzz)
+- [Source code fuzz.go](https://go.dev/src/internal/fuzz/fuzz.go)
+
+blog articles
+
 - [Best practices for go fuzzing in Go 1.18](https://faun.pub/best-practices-for-go-fuzzing-in-go-1-18-84eab46b70d8)
 - [The state of Go Fuzzing: Did we already reach the peak](https://0x434b.dev/the-state-of-go-fuzzing-did-we-already-reach-the-peak/#native-go-fuzzing-is-it-advancing)
 - [Finding bugs with go fuzzing](https://bitfieldconsulting.com/posts/bugs-fuzzing)
-- [Source file src/internal/fuzz/fuzz.go](https://go.dev/src/internal/fuzz/fuzz.go)
+
+youtube videos
+
+- [How to write a fuzz test | Demo](https://www.youtube.com/watch?v=y8Rpb3nrJn8&t=324s)
+- [Introduction to Fuzzing](https://www.youtube.com/watch?v=-hc6LGA46Bg)
+
+picture: [fuzz test structure](https://go.dev/doc/security/fuzz/)

@@ -1,4 +1,4 @@
-package even
+package main
 
 import "testing"
 
@@ -22,17 +22,23 @@ func TestEven(t *testing.T) {
 
 }
 
-func FuzzEvent(f *testing.F) {
+// Fuzz test for the Even function
+func FuzzEven(f *testing.F) {
+
+	// initial set of seed inputs
 	testinputs := []int{5, 0, 50}
 
-	for _, tc := range testinputs {
-		f.Add(tc) // Use f.Add to provide a seed corpus
+	for _, ti := range testinputs {
+		f.Add(ti) // Use f.Add to provide a seed corpus
 	}
-	f.Fuzz(func(t *testing.T, in int) {
-		res := Even(in)
-		res2 := Even(in + 1)
-		if res == res2 {
-			t.Errorf("Fail: %d => %t, %d => %t", in, res, in+1, res2)
+
+	// fuzz target, with fuzzing argument "input"
+	f.Fuzz(func(t *testing.T, input int) {
+		result := Even(input)
+		result2 := Even(input + 1)
+		if result == result2 {
+			// throws an error, if number and its successor both identified as even
+			t.Errorf("Fail: %d => %t, %d => %t", input, result, input+1, result2)
 		}
 	})
 }

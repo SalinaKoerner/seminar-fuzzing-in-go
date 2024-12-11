@@ -23,7 +23,7 @@ func philo(id int, forks chan int) {
 
 }
 
-func main() {
+func main2() {
 	var forks = make(chan int, 3)
 	forks <- 1 // put 3 forks on the table
 	forks <- 1
