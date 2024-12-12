@@ -1,6 +1,7 @@
 package main
 
 func Funny(i int, j int) {
+	// bug: divide by zero
 	if i/(j-4894) > 0 {
 	}
 }
