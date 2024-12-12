@@ -117,7 +117,7 @@ FAIL    main/main/datarace      16.479s
 ## How the Go fuzzer works
 
 When running a fuzz test Go starts with the seed corpus to get an initial generated corpus.
-With a mutator it creates new inputs by generating new inputs, randomly modifying inputs or combining them.
+With a mutator it creates new inputs by generating new inputs, randomly modifying inputs or combining them randomly.
 
 The Go built-in fuzzer then takes the newly generated inputs and keeps running the test.
 
