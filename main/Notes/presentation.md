@@ -1,3 +1,10 @@
+## How the Go fuzzer works
+
+1. start with seed/given inputs
+2. mutate inputs
+3. monitors program for errors
+4. write failing inputs into file
+
 ## Structure of a fuzz test
 
 - name: Fuzz{FunctionToFuzz}
@@ -53,13 +60,6 @@ FAIL    main/main/datarace      16.479s
   already reached. In the brackets you can see the total size of the generated corpus.
 
 - after over 2.618.761 executions the process failed, which means there is a problem in the function
-
-## How the Go fuzzer works
-
-1. start with seed/given inputs
-2. mutate inputs
-3. monitors programm for errors
-4. write failing inputs into file
 
 # Pros and Cons / Advantages and Limitations
 
